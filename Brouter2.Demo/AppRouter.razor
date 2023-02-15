@@ -1,0 +1,91 @@
+﻿@code {
+    private int currentCount { get; set; } = 0;
+
+    void ChangeCountValue(int value)
+    {
+        currentCount = value;
+        StateHasChanged();
+    }
+}
+
+<SBrouter>
+    <Route Template="/" RedirectTo="/home" />
+
+    <Route Template="/home">
+        <Content><HomePage CountValue="@currentCount"></HomePage></Content>
+    </Route>
+
+    <Route Template="/counter">
+        <Content><CounterPage @bind-CurrentCount="currentCount" ChangeCount="@ChangeCountValue" /></Content>
+    </Route>
+
+    <Route Template="/counter/{init:int}">
+        <Content><CounterPage @bind-CurrentCount="currentCount" ChangeCount="@ChangeCountValue" /></Content>
+    </Route>
+
+    <Route Template="/counter/multi/{id:int:long}/{age:long:decimal:double}/{name}">
+        <Content><CounterPage @bind-CurrentCount="currentCount" ChangeCount="@ChangeCountValue" /></Content>
+    </Route>
+
+    <Route Template="/fetchdata" Component="typeof(FetchDataPage)" />
+
+    <Route Template="/*/test">
+        <Content><p>Test page</p></Content>
+    </Route>
+
+    <Route Template="/nested-route">
+        <Route Template="/{id:int}" Component="@typeof(FetchDataPage)" />
+        <Route Template="/{id:int}/hello">
+            <Content><FetchDataPage Value="2" /></Content>
+        </Route>
+        <Route Template="/{id:int}/world">
+            <Content><FetchDataPage Value="3" /></Content>
+        </Route>
+        <Route>
+            <Content>
+                <h1 class="text-danger">404 - Nested</h1>
+                <p>Nested: Sorry, there's nothing at this address.</p>
+            </Content>
+        </Route>
+
+        <Route Template="/nested-2">
+            <Route Template="/{id:int}" Component="@typeof(FetchDataPage)" />
+            <Route>
+                <Content>
+                    <h1 class="text-danger">404 - Nested 2</h1>
+                    <p>Nested - Nested: Sorry, there's nothing at this address.</p>
+                </Content>
+            </Route>
+        </Route>
+    </Route>
+
+    <Route Template="/test">
+        <Route Template="/t1">
+            <Content>This is <strong>t1</strong> route</Content>
+        </Route>
+        <Route Template="/t2">
+            <Content>This is <strong>t2</strong> route</Content>
+        </Route>
+        <Route Template="/tt">
+            <Route Template="tt1" Guard="() => DateTime.Now.Second % 2 == 0" RedirectTo="/test/not">
+                <Content>This is <strong>tt1</strong> route</Content>
+            </Route>
+            <Route Template="tt2" Guard="() => DateTime.Now.Minute % 2 == 0" RedirectTo="/test/not">
+                <Content>This is <strong>tt2</strong> route</Content>
+            </Route>
+        </Route>
+        <Route Template="/not">
+            <Content>
+                <h1 class="text-danger">403.1 oops!</h1>
+                <p>Sorry, you can't go there yet.</p>
+            </Content>
+        </Route>
+    </Route>
+
+    @*<Route>
+        <Content>
+            <h1 class="text-danger">404</h1>
+            <p>Sorry, there's nothing at this address.</p>
+        </Content>
+    </Route>*@
+</SBrouter>

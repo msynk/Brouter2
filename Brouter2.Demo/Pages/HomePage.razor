@@ -1,0 +1,44 @@
+﻿<h1>Hello, world!</h1>
+Welcome to your new app.
+<br />
+<br />
+You have counted to @CountValue.
+<br />
+<br />
+<NavLink href="counter/1234">Counter from 1234</NavLink>
+<br />
+<NavLink href="counter/multi/1/2/saleh">Counter with multiple parameter</NavLink>
+<br />
+<br />
+<NavLink href="404-test">non-existance page.</NavLink>
+<br />
+<br />
+<NavLink href="nested-route/1">nested route example 1.</NavLink>
+<br />
+<NavLink href="nested-route/5/hello">nested route example 2.</NavLink>
+<br />
+<NavLink href="nested-route/10/world">nested route example 3.</NavLink>
+<br />
+<NavLink href="nested-route/22/404-test">non-existance page (nested route).</NavLink>
+<br />
+<br />
+<NavLink href="nested-route/nested-2/113">nested-nested route example 113.</NavLink>
+<br />
+<NavLink href="nested-route/nested-2/33/404-test">non-existance page (nested-nested route).</NavLink>
+<br />
+<br />
+<NavLink href="abcdefg/test">route */test.</NavLink>
+<br />
+<br />
+<NavLink href="test/t1">test/t1 Guard</NavLink>
+<br />
+<NavLink href="test/t2">test/t2 Guard</NavLink>
+<br />
+<NavLink href="test/tt/tt1">test/tt/tt1 Guarded by (DateTime.Now.Second % 2 == 0)</NavLink>
+<br />
+<NavLink href="test/tt/tt2">test/tt/tt2 Guarded by (DateTime.Now.Minute % 2 == 0)</NavLink>
+
+
+@code {
+    [Parameter] public int CountValue { get; set; }
+}

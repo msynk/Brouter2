@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<Authors>msynk</Authors>
+		<Description>An awesome router for Blazor.</Description>
+		<Copyright>msynk</Copyright>
+		<PackageProjectUrl>https://github.com/msynk/Brouter</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/msynk/Brouter</RepositoryUrl>
+		<PackageId>msynk.Brouter</PackageId>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Product>Brouter</Product>
+		<Version>0.0.1</Version>
+		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
+		<Company>msynk</Company>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<SupportedPlatform Include="browser" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="7.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="System" />
+		<Using Include="System.Linq" />
+		<Using Include="System.Threading.Tasks" />
+		<Using Include="System.Collections.Generic" />
+		<Using Include="Microsoft.JSInterop" />
+		<Using Include="Microsoft.AspNetCore.Components" />
+	</ItemGroup>
+
+</Project>

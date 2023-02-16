@@ -5,98 +5,81 @@ namespace Brouter2;
 internal class RouteRenderer
 {
     private readonly Route _route;
-    private readonly RenderTreeBuilder _builder;
-    private readonly RenderFragment _currentFragment;
-    private readonly Type _currentComponent;
-    private readonly IDictionary<string, object> _parameters;
-    private readonly IDictionary<string, string[]> _constraints;
 
-    public RouteRenderer(Route route,
-                           RenderTreeBuilder builder,
-                           IDictionary<string, object> parameters,
-                           IDictionary<string, string[]> constraints,
-                           RenderFragment currentFragment,
-                           Type currentComponent)
+    public RouteRenderer(Route route)
     {
         _route = route;
-        _builder = builder;
-        _parameters = parameters;
-        _constraints = constraints;
-        _currentFragment = currentFragment;
-        _currentComponent = currentComponent;
     }
 
-    public void BuildRenderTree()
-    {
-        var seq = CreateRouteCascadingValue();
-        CreateParametersCascadingValues(++seq);
-    }
-
-    private int CreateRouteCascadingValue()
+    public void BuildRenderTree(RenderTreeBuilder builder, bool matched)
     {
         var seq = 0;
-        _builder.OpenComponent<CascadingValue<Route>>(seq++);
-        _builder.AddAttribute(seq++, "Name", "ParentRoute");
-        _builder.AddAttribute(seq++, "Value", _route);
-        _builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 => builder2.AddContent(seq, _route.ChildContent)));
-        _builder.CloseComponent();
-        return seq;
-    }
+        builder.OpenComponent<CascadingValue<Route>>(seq++);
+        builder.AddAttribute(seq++, "Name", "ParentRoute");
+        builder.AddAttribute(seq++, "Value", _route);
+        builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 => builder2.AddContent(seq, _route.ChildContent)));
+        builder.CloseComponent();
 
-    private void CreateParametersCascadingValues(int seq)
-    {
-        if (_parameters is null || _parameters.Count == 0)
+        if (matched is false) return;
+
+        if (_route.Parameters is null || _route.Parameters.Count == 0)
         {
-            AddRouteParams(_builder, seq);
+            AddRouteParameters(builder, seq);
             return;
         };
 
-        RecursiveCreate(_builder, 0, seq, _parameters.ToArray());
+        AddRecursiveParameters(builder, 0, seq, _route.Parameters.ToArray());
     }
 
-    private void RecursiveCreate(RenderTreeBuilder builder, int idx, int seq, KeyValuePair<string, object>[] arr)
+    private void AddRecursiveParameters(RenderTreeBuilder builder, int idx, int seq, KeyValuePair<string, object>[] parameters)
     {
-        var p = arr[idx];
+        var parameter = parameters[idx];
 
-        seq = AddComponent(builder, p.Key, p.Value, seq);
+        seq = AddComponent(builder, parameter.Key, parameter.Value, seq);
 
         builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 =>
         {
-            if (++idx == arr.Length)
+            if (++idx == parameters.Length)
             {
-                AddRouteParams(builder2, seq);
+                AddRouteParameters(builder2, seq);
                 return;
             }
 
-            RecursiveCreate(builder2, idx, seq, arr);
+            AddRecursiveParameters(builder2, idx, seq, parameters);
         }));
 
         builder.CloseComponent();
     }
 
-    private void AddRouteParams(RenderTreeBuilder builder, int seq)
+    private void AddRouteParameters(RenderTreeBuilder builder, int seq)
     {
         builder.OpenComponent<CascadingValue<IDictionary<string, object>>>(seq++);
         builder.AddAttribute(seq++, "Name", "RouteParameters");
-        builder.AddAttribute(seq++, "Value", _parameters);
-        if (_currentFragment is not null)
+        var routeParams = MergeParameters(_route.RouteParameters, _route.Parameters);
+        builder.AddAttribute(seq++, "Value", routeParams);
+        if (_route.Content is not null)
         {
-            builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 => builder2.AddContent(seq, _currentFragment)));
+            builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 => builder2.AddContent(seq, _route.Content(routeParams))));
         }
-        else if (_currentComponent is not null)
+        else if (_route.Component is not null)
         {
             builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 =>
             {
-                builder2.OpenComponent(seq++, _currentComponent);
+                builder2.OpenComponent(seq++, _route.Component);
                 builder2.CloseComponent();
             }));
         }
         builder.CloseComponent();
     }
 
+    private static IDictionary<string, object> MergeParameters(IDictionary<string, object> routeParameters, IDictionary<string, object> parameters)
+    {
+        return parameters;
+    }
+
     private int AddComponent<T>(RenderTreeBuilder builder, string name, T value, int seq)
     {
-        var constraints = _constraints[name];
+        var constraints = _route.Constraints[name];
         if (constraints is null || constraints.Length == 0)
         {
             builder.OpenComponent<CascadingValue<T>>(seq++);

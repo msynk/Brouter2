@@ -4,29 +4,36 @@ namespace Brouter2;
 
 public partial class Route : ComponentBase, IDisposable
 {
-    private IDictionary<string, object> _parameters = null;
-    private IDictionary<string, string[]> _constraints = null;
-    private RouteTemplate _routeTemplate;
-    private bool _disposed;
-
     internal readonly string Id = Guid.NewGuid().ToString();
 
     [Parameter] public string Template { get; set; }
     [Parameter] public string RedirectTo { get; set; }
     [Parameter] public Type Component { get; set; }
-    [Parameter] public RenderFragment Content { get; set; }
+    [Parameter] public RenderFragment<IDictionary<string, object>> Content { get; set; }
     [Parameter] public Func<bool> Guard { get; set; }
+    [Parameter] public Type GuardComponent { get; set; }
+    [Parameter] public RenderFragment GuardContent { get; set; }
+
     [Parameter] public RenderFragment ChildContent { get; set; }
 
     [CascadingParameter(Name = "Brouter")] protected SBrouter Brouter { get; set; }
     [CascadingParameter(Name = "ParentRoute")] internal Route Parent { get; set; }
 
-
-    [Inject] private NavigationManager _navManager { get; set; }
+    [CascadingParameter(Name = "RouteParameters")] internal IDictionary<string, object> RouteParameters { get; set; }
 
 
     internal string FullTemplate = string.Empty;
 
+
+    private readonly List<Route> Children = new();
+    internal void AddChild(Route route) => Children.Add(route);
+    internal void RemoveChild(Route route) => Children.Remove(route);
+
+    internal RouteTemplate RouteTemplate;
+    internal IDictionary<string, object> Parameters = null;
+    internal IDictionary<string, string[]> Constraints = null;
+
+    private RouteRenderer _renderer;
     protected override void OnInitialized()
     {
         base.OnInitialized();
@@ -35,108 +42,35 @@ public partial class Route : ComponentBase, IDisposable
             throw new InvalidOperationException("A Route must be nested in a Brouter.");
 
         Brouter.RegisterRoute(this);
+        Parent?.AddChild(this);
 
         FullTemplate = (Parent is null || string.IsNullOrWhiteSpace(Parent.FullTemplate))
                         ? Template
                         : $"{Parent.FullTemplate}/{Template}".Replace("//", "/");
 
-        _routeTemplate = TemplateParser.ParseTemplate(FullTemplate);
+        RouteTemplate = TemplateParser.ParseTemplate(FullTemplate);
+
+        _renderer = new RouteRenderer(this);
     }
 
+
+    internal bool Matched { get; set; }
     protected override void BuildRenderTree(RenderTreeBuilder builder)
     {
         base.BuildRenderTree(builder);
-
-        if (Match() is false && Brouter.PathInfo.Path.StartsWith(FullTemplate) is false)
-        {
-            Brouter.NotMatched(this);
-            return;
-        }
-
-        Brouter.Matched(this);
-
-        if (CheckGuard() is false) return;
-
-        new RouteRenderer(this, builder, _parameters, _constraints, Content, Component).BuildRenderTree();
+        _renderer.BuildRenderTree(builder, Matched);
     }
 
-    private bool Match()
+    internal void SetMatched()
     {
-        _parameters = null;
-        _constraints = null;
+        Matched = true;
 
-        // Empty path match all routes
-        if (string.IsNullOrEmpty(_routeTemplate.Template))
-        {
-            if (Guard is null && RedirectTo is not null)
-            {
-                _navManager.NavigateTo(RedirectTo);
-                return false;
-            }
+        StateHasChanged();
 
-            return true;
-        }
+        if (Parent is null) return;
 
-        var segments = Brouter.PathInfo.Segments;
-
-        if (_routeTemplate.TemplateSegments.Length != segments.Length)
-        {
-            if (_routeTemplate.TemplateSegments.Length == 0) return false;
-
-            bool lastSegmentStar = _routeTemplate.TemplateSegments[^1].Value == "*" && _routeTemplate.TemplateSegments.Length - segments.Length == 1;
-            bool lastSegmentDoubleStar = _routeTemplate.TemplateSegments[^1].Value == "**" && segments.Length >= _routeTemplate.TemplateSegments.Length - 1;
-
-            if (lastSegmentStar is false && lastSegmentDoubleStar is false) return false;
-        }
-
-        for (int i = 0; i < _routeTemplate.TemplateSegments.Length; i++)
-        {
-            var templateSegment = _routeTemplate.TemplateSegments[i];
-            var segment = i < segments.Length ? segments[i] : string.Empty;
-
-            if (templateSegment.TryMatch(segment, out var matchedParameterValue) is false) return false;
-
-            if (templateSegment.IsParameter)
-            {
-                InitParameters();
-                _parameters[templateSegment.Value] = matchedParameterValue;
-                _constraints[templateSegment.Value] = templateSegment.Constraints.Select(rc => rc.Constraint).ToArray();
-            }
-        }
-
-        if (Guard is null && RedirectTo is not null)
-        {
-            _navManager.NavigateTo(RedirectTo);
-            return false;
-        }
-
-        return true;
-
-        void InitParameters()
-        {
-            if (_parameters is null)
-            {
-                _parameters = new Dictionary<string, object>();
-                _constraints = new Dictionary<string, string[]>();
-            }
-        };
+        Parent.SetMatched();
     }
-
-    private bool CheckGuard()
-    {
-        var result = true;
-        if (Guard is null) return true;
-
-        result = Guard.Invoke();
-        if (result is false && RedirectTo is not null)
-        {
-            _navManager.NavigateTo(RedirectTo);
-            return false;
-        }
-
-        return result;
-    }
-
 
 
     public void Dispose()
@@ -145,11 +79,13 @@ public partial class Route : ComponentBase, IDisposable
         GC.SuppressFinalize(this);
     }
 
+    private bool _disposed;
     protected virtual void Dispose(bool disposing)
     {
         if (_disposed || disposing is false) return;
 
         Brouter.UnregisterRoute(this);
+        Parent?.RemoveChild(this);
 
         _disposed = true;
     }

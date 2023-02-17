@@ -17,18 +17,22 @@ internal class RouteRenderer
         builder.OpenComponent<CascadingValue<Route>>(seq++);
         builder.AddAttribute(seq++, "Name", "ParentRoute");
         builder.AddAttribute(seq++, "Value", _route);
-        builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 => builder2.AddContent(seq, _route.ChildContent)));
-        builder.CloseComponent();
-
-        if (matched is false) return;
-
-        if (_route.Parameters is null || _route.Parameters.Count == 0)
+        builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 =>
         {
-            AddRouteParameters(builder, seq);
-            return;
-        };
-
-        AddRecursiveParameters(builder, 0, seq, _route.Parameters.ToArray());
+            builder2.AddContent(seq, _route.ChildContent);
+            if (matched)
+            {
+                if (_route.Parameters is null || _route.Parameters.Count == 0)
+                {
+                    AddRouteParameters(builder2, seq);
+                }
+                else
+                {
+                    AddRecursiveParameters(builder2, 0, seq, _route.Parameters.ToArray());
+                }
+            }
+        }));
+        builder.CloseComponent();
     }
 
     private void AddRecursiveParameters(RenderTreeBuilder builder, int idx, int seq, KeyValuePair<string, object>[] parameters)

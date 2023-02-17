@@ -9,13 +9,6 @@
 }
 
 <SBrouter NotFound="404">
-    <Route Template="404">
-        <Content>
-            <h1 class="text-danger">404</h1>
-            <p>Sorry, there's nothing at this address.</p>
-        </Content>
-    </Route>
-
     <Route Template="/" RedirectTo="/home" />
 
     <Route Template="/home">
@@ -75,6 +68,17 @@
     </Route>
     <Route Template="g2" Guard="() => DateTime.Now.Minute % 2 == 0" RedirectTo="403">
         <Content>This is <strong>tt2</strong> route</Content>
+    </Route>
+
+    <Route Template="nested">
+        <Content><Nested></Nested></Content>
+    </Route>
+
+    <Route Template="404">
+        <Content>
+            <h1 class="text-danger">404</h1>
+            <p>Sorry, there's nothing at this address.</p>
+        </Content>
     </Route>
 
     <Route Template="/403">

@@ -14,6 +14,7 @@ public partial class SBrouter : ComponentBase, IDisposable
     [Parameter] public RenderFragment ChildContent { get; set; }
     [Parameter] public EventHandler<RouteMatchedEventArgs> OnMatch { get; set; }
     [Parameter] public string NotFound { get; set; }
+    [Parameter] public bool EnableParams { get; set; }
 
 
 

@@ -84,3 +84,151 @@ An awesome modern router for Blazor.
     </Route>
 </SBrouter>
 ```
+
+
+Counter page:
+
+```razor
+<h1>Counter</h1>
+
+<p>Current count: @CurrentCount</p>
+
+<button class="btn btn-primary" @onclick="() => ChangeCount?.Invoke(CurrentCount + 1)">Click me</button>
+
+<br />
+
+<div>Init: @Init</div>
+
+<br />
+
+<div>Id: @Id</div>
+<div>Age: @Age</div>
+<div>Name: @Name</div>
+
+@code {
+    [Parameter] public int CurrentCount { get; set; } = 0;
+    [Parameter] public EventCallback<int> CurrentCountChanged { get; set; }
+    [Parameter] public Action<int> ChangeCount { get; set; }
+
+    [CascadingParameter(Name = "RouteParameters")] IDictionary<string, object> Parameters { get; set; }
+
+    [CascadingParameter(Name = "init")] int Init { get; set; }
+
+    [CascadingParameter(Name = "id")] long Id { get; set; }
+    [CascadingParameter(Name = "age")] double Age { get; set; }
+    [CascadingParameter(Name = "name")] object Name { get; set; }
+
+
+    private bool parameterHasSet = false;
+
+    protected override void OnParametersSet()
+    {
+        if (parameterHasSet) return;
+
+        parameterHasSet = true;
+
+        base.OnParametersSet();
+
+        if (Parameters is not null && Parameters.ContainsKey("init"))
+        {
+            CurrentCount = (int)Parameters["init"];
+            ChangeCount(CurrentCount);
+        }
+    }
+}
+```
+
+FetchData page:
+
+```razor
+@inject HttpClient Http
+
+<h1>Weather forecast</h1>
+
+<p>This component demonstrates fetching data from the server.</p>
+
+@if (forecasts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    if (Parameters?.ContainsKey("id") ?? false)
+    {
+        <p>Id: @Parameters["id"], Value: @Value</p>
+    }
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Temp. (C)</th>
+                <th>Temp. (F)</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var forecast in forecasts)
+            {
+                <tr>
+                    <td>@forecast.Date.ToShortDateString()</td>
+                    <td>@forecast.TemperatureC</td>
+                    <td>@forecast.TemperatureF</td>
+                    <td>@forecast.Summary</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public string Value { get; set; } = "N/A";
+
+    [CascadingParameter(Name = "RouteParameters")] IDictionary<string, object> Parameters { get; set; }
+
+    private WeatherForecast[] forecasts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("sample-data/weather.json");
+    }
+
+    public class WeatherForecast
+    {
+        public DateTime Date { get; set; }
+
+        public int TemperatureC { get; set; }
+
+        public string Summary { get; set; }
+
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
+}
+
+```
+
+Nested page:
+
+```razor
+<h1>Nested route: /nested</h1>
+
+<p>lets test some nested routes</p>
+
+<button @onclick="() => count++">Count: [@count]</button>
+
+<hr />
+
+<a href="/nested/n1/@count">"/nested/n1/@count"</a>
+
+<hr />
+
+<Route Template="n1/{count:int}">
+    <Content>
+        <h3>this is the nested route /n1</h3>
+        <div>count: [@context["count"]]</div>
+    </Content>
+</Route>
+
+@code {
+    private int count;
+}
+```

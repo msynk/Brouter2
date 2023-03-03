@@ -16,7 +16,7 @@ public partial class Route : ComponentBase, IDisposable
 
     [Parameter] public RenderFragment ChildContent { get; set; }
 
-    [CascadingParameter(Name = "Brouter")] protected SBrouter Brouter { get; set; }
+    [CascadingParameter(Name = "Brouter")] internal SBrouter Brouter { get; set; }
     [CascadingParameter(Name = "ParentRoute")] internal Route Parent { get; set; }
 
     [CascadingParameter(Name = "RouteParameters")] internal IDictionary<string, object> RouteParameters { get; set; }
@@ -28,6 +28,8 @@ public partial class Route : ComponentBase, IDisposable
     private readonly List<Route> Children = new();
     internal void AddChild(Route route) => Children.Add(route);
     internal void RemoveChild(Route route) => Children.Remove(route);
+
+    internal Outlet Outlet { get; set; }
 
     internal RouteTemplate RouteTemplate;
     internal IDictionary<string, object> Parameters = null;

@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Components.Rendering;
+﻿using System.Data;
 using Microsoft.AspNetCore.Components.Routing;
-using System;
-using System.Data;
+using Microsoft.AspNetCore.Components.Rendering;
 
 namespace Brouter2;
 
@@ -12,10 +11,9 @@ public partial class SBrouter : ComponentBase, IDisposable
 
 
     [Parameter] public RenderFragment ChildContent { get; set; }
-    [Parameter] public EventHandler<RouteMatchedEventArgs> OnMatch { get; set; }
+    [Parameter] public EventHandler<Route> OnMatch { get; set; }
     [Parameter] public string NotFound { get; set; }
     [Parameter] public bool EnableParams { get; set; }
-
 
 
     [Inject] private NavigationManager _navManager { get; set; }
@@ -30,14 +28,11 @@ public partial class SBrouter : ComponentBase, IDisposable
     internal void UnregisterRoute(Route route) => _routes.Remove(route);
 
 
-    private string _location = string.Empty;
     protected override void OnInitialized()
     {
         base.OnInitialized();
 
         _navManager.LocationChanged += NavManagerLocationChanged;
-
-        _location = _navManager.Uri;
 
         CreatePathInfo();
     }
@@ -65,17 +60,12 @@ public partial class SBrouter : ComponentBase, IDisposable
         builder.CloseComponent();
     }
 
+
     private void NavManagerLocationChanged(object sender, LocationChangedEventArgs e)
     {
-        _location = e.Location;
-
         CreatePathInfo();
-
         MatchRoutes();
     }
-
-
-
 
     private void CreatePathInfo()
     {
@@ -115,6 +105,7 @@ public partial class SBrouter : ComponentBase, IDisposable
             if (CheckGuard(route))
             {
                 route.SetMatched();
+                OnMatch?.Invoke(this, route);
             }
             else if (_navigated)
             {
@@ -210,7 +201,6 @@ public partial class SBrouter : ComponentBase, IDisposable
 
         return result;
     }
-
 
 
     public void Dispose()

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Rendering;
+using System.Linq;
 
 namespace Brouter2;
 
@@ -22,24 +23,29 @@ internal class RouteRenderer
             builder2.AddContent(seq, _route.ChildContent);
             if (matched)
             {
-                if (_route.Parameters is null || _route.Parameters.Count == 0)
-                {
-                    AddRouteParameters(builder2, seq);
-                }
-                else
-                {
-                    AddRecursiveParameters(builder2, 0, seq, _route.Parameters.ToArray());
-                }
+                RenderRoute(builder2, seq);
             }
         }));
         builder.CloseComponent();
+    }
+
+    private void RenderRoute(RenderTreeBuilder builder, int seq)
+    {
+        if (_route.Parameters is null || _route.Parameters.Count == 0)
+        {
+            AddRouteParameters(builder, seq);
+        }
+        else
+        {
+            AddRecursiveParameters(builder, 0, seq, _route.Parameters.ToArray());
+        }
     }
 
     private void AddRecursiveParameters(RenderTreeBuilder builder, int idx, int seq, KeyValuePair<string, object>[] parameters)
     {
         var parameter = parameters[idx];
 
-        seq = AddComponent(builder, parameter.Key, parameter.Value, seq);
+        seq = AddParameter(builder, parameter.Key, parameter.Value, seq);
 
         builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 =>
         {
@@ -59,29 +65,32 @@ internal class RouteRenderer
     {
         builder.OpenComponent<CascadingValue<IDictionary<string, object>>>(seq++);
         builder.AddAttribute(seq++, "Name", "RouteParameters");
-        var routeParams = MergeParameters(_route.RouteParameters, _route.Parameters);
-        builder.AddAttribute(seq++, "Value", routeParams);
-        if (_route.Content is not null)
+        var routeParameters = MergeParameters(_route.RouteParameters, _route.Parameters);
+        builder.AddAttribute(seq++, "Value", routeParameters);
+        if (_route.Parent?.Outlet is null)
         {
-            builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 => builder2.AddContent(seq, _route.Content(routeParams))));
-        }
-        else if (_route.Component is not null)
-        {
-            builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 =>
+            if (_route.Content is not null)
             {
-                builder2.OpenComponent(seq++, _route.Component);
-                builder2.CloseComponent();
-            }));
+                builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 => builder2.AddContent(seq, _route.Content(routeParameters))));
+            }
+            else if (_route.Component is not null)
+            {
+                builder.AddAttribute(seq++, "ChildContent", (RenderFragment)(builder2 =>
+                {
+                    builder2.OpenComponent(seq++, _route.Component);
+                    builder2.CloseComponent();
+                }));
+            }
         }
+        else
+        {
+            _route.Parent.Outlet.Render(_route, routeParameters);
+        }
+
         builder.CloseComponent();
     }
 
-    private static IDictionary<string, object> MergeParameters(IDictionary<string, object> routeParameters, IDictionary<string, object> parameters)
-    {
-        return parameters;
-    }
-
-    private int AddComponent<T>(RenderTreeBuilder builder, string name, T value, int seq)
+    private int AddParameter<T>(RenderTreeBuilder builder, string name, T value, int seq)
     {
         var constraints = _route.Constraints[name];
         if (constraints is null || constraints.Length == 0)
@@ -90,7 +99,7 @@ internal class RouteRenderer
         }
         else
         {
-            if (OpenConstrainedComp(builder, constraints, value, seq++) is false)
+            if (OpenConstrainedParameter(builder, constraints, value, seq++) is false)
             {
                 builder.OpenComponent<CascadingValue<T>>(seq);
             }
@@ -101,19 +110,19 @@ internal class RouteRenderer
         return seq;
     }
 
-    private static bool OpenConstrainedComp(RenderTreeBuilder builder, string[] constraints, object value, int seq)
+    private static bool OpenConstrainedParameter(RenderTreeBuilder builder, string[] constraints, object value, int seq)
     {
         //foreach (var constraint in constraints)
         //{
         //    if (CheckConstraint(constraint, value))
         //    {
-        //        OpenComp(builder, constraint, seq);
+        //        OpenCascadingParameter(builder, constraint, seq);
         //        return true;
         //    }
         //}
         //return false;
 
-        OpenComp(builder, constraints[^1], seq);
+        OpenCascadingParameter(builder, constraints[^1], seq);
 
         return true;
     }
@@ -134,7 +143,7 @@ internal class RouteRenderer
         };
     }
 
-    private static void OpenComp(RenderTreeBuilder builder, string constraint, int seq)
+    private static void OpenCascadingParameter(RenderTreeBuilder builder, string constraint, int seq)
     {
         (constraint switch
         {
@@ -148,5 +157,12 @@ internal class RouteRenderer
             "datetime" => () => builder.OpenComponent<CascadingValue<DateTime>>(seq),
             _ => () => { }
         })();
+    }
+
+    private static IDictionary<string, object> MergeParameters(IDictionary<string, object> routeParameters, IDictionary<string, object> parameters)
+    {
+        if (routeParameters is null) return parameters;
+        var newParameters = routeParameters.Where(e => parameters.ContainsKey(e.Key) is false);
+        return parameters.Concat(newParameters).ToDictionary(e => e.Key, e => e.Value);
     }
 }

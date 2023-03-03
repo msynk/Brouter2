@@ -40,6 +40,8 @@
         <Content><p>[@context["prefix"]] Test2 page [@context["postfix"]]</p></Content>
     </Route>
 
+    @*============================================================================*@
+
     <Route Template="/nested-route">
         <Route Template="/{id:int}" Component="@typeof(FetchDataPage)" />
         <Route Template="/{id:int}/hello">
@@ -63,6 +65,8 @@
         </Route>
     </Route>
 
+    @*============================================================================*@
+
     <Route Template="g1" Guard="() => DateTime.Now.Second % 2 == 0" RedirectTo="403">
         <Content>This is <strong>tt1</strong> route</Content>
     </Route>
@@ -70,9 +74,41 @@
         <Content>This is <strong>tt2</strong> route</Content>
     </Route>
 
-    <Route Template="nested">
-        <Content><Nested></Nested></Content>
+    @*============================================================================*@
+
+    <Route Template="nested" Component="@typeof(Nested)" />
+
+    <Route Template="nested2" Component="@typeof(Nested2)">
+        <Route Template="n1/{count:int}">
+            <Content Context="ctx"><h3>nested2/n1</h3><div>count: [@ctx["count"]]</div></Content>
+        </Route>
+        <Route Template="n2/{count:int}">
+            <Content Context="ctx"><h3>nested2/n2</h3><div><b>count: [@ctx["count"]]</b></div></Content>
+        </Route>
     </Route>
+
+    <Route Template="nested3">
+        <Content>
+            <h1>Nested route: /nested3</h1>
+            <p>nested3 routes:</p>
+            <hr />
+            <a href="/nested3/n1/1">"/nested3/n1/1"</a>
+            <br />
+            <a href="/nested3/n2/2">"/nested3/n2/2"</a>
+            <hr />
+            <Outlet />
+        </Content>
+        <ChildContent>
+            <Route Template="n1/{count:int}">
+                <Content Context="ctx"><h3>nested2/n1</h3><em>count1: [@ctx["count"]]</em></Content>
+            </Route>
+            <Route Template="n2/{count:int}">
+                <Content Context="ctx"><h3>nested2/n2:</h3><b>count2: [@ctx["count"]]</b></Content>
+            </Route>
+        </ChildContent>
+    </Route>
+
+    @*============================================================================*@
 
     <Route Template="404">
         <Content>
